@@ -8,6 +8,15 @@
     <Title>KikaPyde.AdoNetCore.Extensions</Title>
     <Authors>KikaPyde</Authors>
     <RepositoryUrl>https://github.com/KikaPyde/KikaPyde.AdoNetCore.Extensions</RepositoryUrl>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
