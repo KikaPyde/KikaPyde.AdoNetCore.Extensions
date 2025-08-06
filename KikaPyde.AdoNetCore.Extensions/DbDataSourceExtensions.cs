@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿#if NET8_0_OR_GREATER
+using System.Data;
 using System.Data.Common;
 
 namespace KikaPyde.AdoNetCore.Extensions
@@ -1428,3 +1429,4 @@ namespace KikaPyde.AdoNetCore.Extensions
         #endregion
     }
 }
+#endif

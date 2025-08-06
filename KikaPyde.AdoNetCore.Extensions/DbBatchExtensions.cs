@@ -29,7 +29,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 });
         }
         public static async Task<T> UsingAsync<T>(
-            this DbBatch DbBatch,
+            this DbBatch dbBatch,
             Func<DbBatch, DbDataReader, CancellationToken, Task<T>> tryFunc,
             Func<DbBatch, DbDataReader?, Exception, CancellationToken, Task<T>>? catchFunc = null,
             CommandBehavior? commandBehavior = null,
@@ -38,12 +38,12 @@ namespace KikaPyde.AdoNetCore.Extensions
             DbDataReader? dbDataReader = null;
             return await TryCatchFinallyAsync(
                 tryFunc: async (cancellationToken) => await tryFunc(
-                    DbBatch,
+                    dbBatch,
                     dbDataReader = commandBehavior.HasValue
-                        ? await DbBatch.ExecuteReaderAsync(commandBehavior.Value, cancellationToken)
-                        : await DbBatch.ExecuteReaderAsync(cancellationToken),
+                        ? await dbBatch.ExecuteReaderAsync(commandBehavior.Value, cancellationToken)
+                        : await dbBatch.ExecuteReaderAsync(cancellationToken),
                     cancellationToken),
-                catchFunc: catchFunc is null ? null : async (tryException, cancellationToken) => await catchFunc(DbBatch, dbDataReader, tryException, cancellationToken),
+                catchFunc: catchFunc is null ? null : async (tryException, cancellationToken) => await catchFunc(dbBatch, dbDataReader, tryException, cancellationToken),
                 finallyFunc: async () =>
                 {
                     if (dbDataReader is not null)
