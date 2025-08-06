@@ -16,6 +16,7 @@
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
     <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
+    <Description>Extension methods for ADO.NET</Description>
   </PropertyGroup>
 
   <ItemGroup>
