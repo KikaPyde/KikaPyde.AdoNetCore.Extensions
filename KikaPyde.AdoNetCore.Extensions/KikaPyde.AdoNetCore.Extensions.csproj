@@ -7,6 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>KikaPyde.AdoNetCore.Extensions</Title>
     <Authors>KikaPyde</Authors>
+    <RepositoryUrl>https://github.com/KikaPyde/KikaPyde.AdoNetCore.Extensions</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
