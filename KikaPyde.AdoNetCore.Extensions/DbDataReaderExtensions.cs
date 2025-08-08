@@ -144,7 +144,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         {
             var row = new Dictionary<string, object?>();
             for (var fieldIndex = 0; fieldIndex < dbDataReader.FieldCount; fieldIndex++)
-                row[dbDataReader.GetName(fieldIndex)] = dbDataReader.TakeFieldValueOrDefaultIfDbNull<object>(fieldIndex);
+                row[dbDataReader.GetName(fieldIndex)] = dbDataReader.TakeFieldValueOrDefaultIfDbNull<object>(fieldIndex).Item2;
             return row;
         }
         public static TCollection AddRange<TCollection, T>(
@@ -526,7 +526,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         {
             var row = new Dictionary<string, object?>();
             for (var fieldIndex = 0; fieldIndex < dbDataReader.FieldCount; fieldIndex++)
-                row[dbDataReader.GetName(fieldIndex)] = await TakeFieldValueOrDefaultIfDbNullAsync<object>(dbDataReader, fieldIndex, cancellationToken);
+                row[dbDataReader.GetName(fieldIndex)] = (await TakeFieldValueOrDefaultIfDbNullAsync<object>(dbDataReader, fieldIndex, cancellationToken)).Item2;
             return row;
         }
         public static async Task<TCollection> AddRangeAsync<TCollection, T>(

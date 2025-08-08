@@ -1,4 +1,4 @@
-﻿#if NET8_0_OR_GREATER
+﻿#if NET7_0_OR_GREATER
 using System.Data;
 using System.Data.Common;
 

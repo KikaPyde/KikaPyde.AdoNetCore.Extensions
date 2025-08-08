@@ -118,7 +118,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         {
             var row = new Dictionary<string, object?>();
             for (var fieldIndex = 0; fieldIndex < dataReader.FieldCount; fieldIndex++)
-                row[dataReader.GetName(fieldIndex)] = dataReader.TakeFieldValueOrDefaultIfDbNull<object>(fieldIndex);
+                row[dataReader.GetName(fieldIndex)] = dataReader.TakeFieldValueOrDefaultIfDbNull<object>(fieldIndex).Item2;
             return row;
         }
         public static TCollection AddRange<TCollection, T>(

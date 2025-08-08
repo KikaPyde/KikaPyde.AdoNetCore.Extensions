@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "KikaPyde.AdoNetCore.Extensions.Examples": {
+      "commandName": "Project",
+      "commandLineArgs": "Sqlite DataSource=TestDatabase.db \"SELECT TestField FROM TestTable\" \"SELECT TestField FROM TestTable\" \"INSERT INTO TestTable VALUES (6), (7)\""
+    }
+  }
+}
