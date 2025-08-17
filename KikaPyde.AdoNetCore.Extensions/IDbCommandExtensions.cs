@@ -1,4 +1,6 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 
 namespace KikaPyde.AdoNetCore.Extensions
 {
@@ -47,7 +49,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 {
                     var result = constructor is null
                         ? dbDataReader.Read()
-                            ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNull<T>().Item2
+                            ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
                             : throw new DataException()
                         : constructor.Invoke(dbDataReader);
                     return result;
@@ -93,7 +95,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         #region GetEnumerable
         public static TCollection GetCollection<TCollection, T>(
             this IDbCommand dbCommand,
-            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             where TCollection : ICollection<T>, new()
             => dbCommand.ExecuteReader(
@@ -111,7 +113,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 commandBehavior: commandBehavior);
         public static List<T> GetList<T>(
             this IDbCommand dbCommand,
-            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
                 constructor: dataReader => dataReader.GetList(
@@ -127,7 +129,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 commandBehavior: commandBehavior);
         public static Dictionary<int, T> GetDictionary<T>(
             this IDbCommand dbCommand,
-            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
                 constructor: dataReader => dataReader.GetDictionary(
@@ -151,13 +153,13 @@ namespace KikaPyde.AdoNetCore.Extensions
             this IDbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dataReader => dataReader.GetDataTable(),
+                constructor: GetDataTable,
                 commandBehavior: commandBehavior);
         public static Dictionary<int, Dictionary<string, object?>> GetRawTable(
             this IDbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dataReader => dataReader.GetRawTable(),
+                constructor: GetRawTable,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?>> GetTuples<T1, T2>(
             this IDbCommand dbCommand,
@@ -214,5 +216,11 @@ namespace KikaPyde.AdoNetCore.Extensions
                 constructor: GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
                 commandBehavior: commandBehavior);
         #endregion
+        public static bool HasRows(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.Read(),
+                commandBehavior: commandBehavior);
     }
 }

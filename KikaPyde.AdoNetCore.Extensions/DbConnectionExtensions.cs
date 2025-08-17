@@ -1,5 +1,9 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KikaPyde.AdoNetCore.Extensions
 {
@@ -55,7 +59,9 @@ namespace KikaPyde.AdoNetCore.Extensions
         {
             DbTransaction? dbTransaction = null;
             DbCommand? dbCommand = null;
+#if NET6_0_OR_GREATER
             DbBatch? dbBatch = null;
+#endif
             DbDataReader? dbDataReader = null;
             ConnectionState? connectionState = null;
             usingOptions = usingOptions ?? DefaultUsingOptions;
@@ -70,6 +76,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                         ? dbConnection.BeginTransaction(isolationLevel.Value)
                         : dbConnection.BeginTransaction();
                 }
+#if NET6_0_OR_GREATER
                 if (allowDbCommand && allowDbBatch)
                     throw new InvalidOperationException();
                 else if (allowDbCommand)
@@ -82,14 +89,23 @@ namespace KikaPyde.AdoNetCore.Extensions
                     dbBatch = dbConnection.CreateBatch();
                     dbBatch.Transaction = dbTransaction;
                 }
+#else
+                if (allowDbCommand)
+                {
+                    dbCommand = dbConnection.CreateCommand();
+                    dbCommand.Transaction = dbTransaction;
+                }
+#endif
                 if (allowDbDataReader)
                 {
                     if (commandBehavior.HasValue)
                     {
                         if (dbCommand is not null)
                             dbDataReader = dbCommand.ExecuteReader(commandBehavior.Value);
+#if NET6_0_OR_GREATER
                         else if (dbBatch is not null)
                             dbDataReader = dbBatch.ExecuteReader(commandBehavior.Value);
+#endif
                         else
                             throw new NullReferenceException(nameof(dbDataReader));
                     }
@@ -97,8 +113,10 @@ namespace KikaPyde.AdoNetCore.Extensions
                     {
                         if (dbCommand is not null)
                             dbDataReader = dbCommand.ExecuteReader();
+#if NET6_0_OR_GREATER
                         else if (dbBatch is not null)
                             dbDataReader = dbBatch.ExecuteReader();
+#endif
                         else
                             throw new NullReferenceException(nameof(dbDataReader));
                     }
@@ -112,20 +130,28 @@ namespace KikaPyde.AdoNetCore.Extensions
                         => tryFunc3.Invoke(dbConnection, dbTransaction),
                     Func<DbConnection, DbCommand, T> tryFunc3 when allowDbCommand && dbCommand is not null && !allowDbTransaction && !allowDbBatch && !allowDbDataReader
                         => tryFunc3.Invoke(dbConnection, dbCommand),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbBatch, T> tryFunc3 when allowDbBatch && dbBatch is not null && !allowDbTransaction && !allowDbCommand && !allowDbDataReader
                         => tryFunc3.Invoke(dbConnection, dbBatch),
+#endif
                     Func<DbConnection, DbTransaction, DbCommand, T> tryFunc4 when allowDbTransaction && dbTransaction is not null && allowDbCommand && dbCommand is not null && !allowDbBatch && !allowDbDataReader
                         => tryFunc4.Invoke(dbConnection, dbTransaction, dbCommand),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbTransaction, DbBatch, T> tryFunc4 when allowDbTransaction && dbTransaction is not null && allowDbBatch && dbBatch is not null && !allowDbCommand && !allowDbDataReader
                         => tryFunc4.Invoke(dbConnection, dbTransaction, dbBatch),
+#endif
                     Func<DbConnection, DbCommand, DbDataReader, T> tryFunc4 when allowDbCommand && dbCommand is not null && allowDbDataReader && dbDataReader is not null && !allowDbBatch && !allowDbTransaction
                         => tryFunc4.Invoke(dbConnection, dbCommand, dbDataReader),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbBatch, DbDataReader, T> tryFunc4 when allowDbBatch && dbBatch is not null && allowDbDataReader && dbDataReader is not null && !allowDbCommand && !allowDbTransaction
                         => tryFunc4.Invoke(dbConnection, dbBatch, dbDataReader),
+#endif
                     Func<DbConnection, DbTransaction, DbCommand, DbDataReader, T> tryFunc5 when allowDbTransaction && dbTransaction is not null && allowDbCommand && dbCommand is not null && allowDbDataReader && dbDataReader is not null && !allowDbBatch
                         => tryFunc5.Invoke(dbConnection, dbTransaction, dbCommand, dbDataReader),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbTransaction, DbBatch, DbDataReader, T> tryFunc5 when allowDbTransaction && dbTransaction is not null && allowDbBatch && dbBatch is not null && allowDbDataReader && dbDataReader is not null && !allowDbCommand
                         => tryFunc5.Invoke(dbConnection, dbTransaction, dbBatch, dbDataReader),
+#endif
                     _ => throw new InvalidCastException(nameof(tryFunc)),
                 };
                 if (dbTransaction is not null && usingOptions.AllowTransactionCommitOnSuccessTryFunc)
@@ -152,20 +178,28 @@ namespace KikaPyde.AdoNetCore.Extensions
                                 => catchFunc4.Invoke(dbConnection, dbTransaction, tryException),
                             Func<DbConnection?, DbCommand?, Exception, T> catchFunc4 when allowDbCommand && !allowDbTransaction && !allowDbBatch && !allowDbDataReader
                                 => catchFunc4.Invoke(dbConnection, dbCommand, tryException),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbBatch?, Exception, T> catchFunc4 when allowDbBatch && !allowDbTransaction && !allowDbBatch && !allowDbDataReader
                                 => catchFunc4.Invoke(dbConnection, dbBatch, tryException),
+#endif
                             Func<DbConnection?, DbTransaction?, DbCommand?, Exception, T> catchFunc5 when allowDbTransaction && allowDbCommand && !allowDbBatch && !allowDbDataReader
                                 => catchFunc5.Invoke(dbConnection, dbTransaction, dbCommand, tryException),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbTransaction?, DbBatch?, Exception, T> catchFunc5 when allowDbTransaction && allowDbBatch && !allowDbCommand && !allowDbDataReader
                                 => catchFunc5.Invoke(dbConnection, dbTransaction, dbBatch, tryException),
+#endif
                             Func<DbConnection?, DbCommand?, DbDataReader?, Exception, T> tryFunc5 when allowDbCommand && allowDbDataReader && !allowDbBatch && !allowDbTransaction
                                 => tryFunc5.Invoke(dbConnection, dbCommand, dbDataReader, tryException),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbBatch?, DbDataReader?, Exception, T> tryFunc5 when allowDbBatch && allowDbDataReader && !allowDbCommand && !allowDbTransaction
                                 => tryFunc5.Invoke(dbConnection, dbBatch, dbDataReader, tryException),
+#endif
                             Func<DbConnection?, DbTransaction?, DbCommand?, DbDataReader?, Exception, T> tryFunc6 when allowDbTransaction && allowDbCommand && allowDbDataReader && !allowDbBatch
                                 => tryFunc6.Invoke(dbConnection, dbTransaction, dbCommand, dbDataReader, tryException),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbTransaction?, DbBatch?, DbDataReader?, Exception, T> tryFunc6 when allowDbTransaction && allowDbBatch && allowDbDataReader && !allowDbCommand
                                 => tryFunc6.Invoke(dbConnection, dbTransaction, dbBatch, dbDataReader, tryException),
+#endif
                             _ => throw new InvalidCastException(nameof(catchFunc)),
                         };
                         if (dbTransaction is not null && usingOptions.AllowTransactionCommitOnSuccessCatchFunc)
@@ -200,7 +234,9 @@ namespace KikaPyde.AdoNetCore.Extensions
             {
                 dbDataReader?.Close();
                 dbDataReader?.Dispose();
+#if NET6_0_OR_GREATER
                 dbBatch?.Dispose();
+#endif
                 dbCommand?.Dispose();
                 dbTransaction?.Dispose();
                 if (connectionState.HasValue && connectionState is not ConnectionState.Open)
@@ -253,6 +289,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: null,
                 commandBehavior: null,
                 usingOptions: usingOptions);
+#if NET6_0_OR_GREATER
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbBatch, T> tryFunc,
@@ -268,6 +305,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: null,
                 commandBehavior: null,
                 usingOptions: usingOptions);
+#endif
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbCommand, T> tryFunc,
@@ -284,6 +322,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: isolationLevel,
                 commandBehavior: null,
                 usingOptions: usingOptions);
+#if NET6_0_OR_GREATER
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbBatch, T> tryFunc,
@@ -300,6 +339,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: isolationLevel,
                 commandBehavior: null,
                 usingOptions: usingOptions);
+#endif
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbCommand, DbDataReader, T> tryFunc,
@@ -316,6 +356,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: null,
                 commandBehavior: commandBehavior,
                 usingOptions: usingOptions);
+#if NET6_0_OR_GREATER
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbBatch, DbDataReader, T> tryFunc,
@@ -332,6 +373,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: null,
                 commandBehavior: commandBehavior,
                 usingOptions: usingOptions);
+#endif
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbCommand, DbDataReader, T> tryFunc,
@@ -349,6 +391,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: isolationLevel,
                 commandBehavior: commandBehavior,
                 usingOptions: usingOptions);
+#if NET6_0_OR_GREATER
         public static T Using<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbBatch, DbDataReader, T> tryFunc,
@@ -366,6 +409,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 isolationLevel: isolationLevel,
                 commandBehavior: commandBehavior,
                 usingOptions: usingOptions);
+#endif
         #endregion
         #region UsingAsync
         private static async Task<T> InternalUsingAsync<T>(
@@ -421,7 +465,9 @@ namespace KikaPyde.AdoNetCore.Extensions
         {
             DbTransaction? dbTransaction = null;
             DbCommand? dbCommand = null;
+#if NET6_0_OR_GREATER
             DbBatch? dbBatch = null;
+#endif
             DbDataReader? dbDataReader = null;
             ConnectionState? connectionState = null;
             usingOptions = usingOptions ?? DefaultUsingOptions;
@@ -436,6 +482,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                         ? await dbConnection.BeginTransactionAsync(isolationLevel.Value, cancellationToken)
                         : await dbConnection.BeginTransactionAsync(cancellationToken);
                 }
+#if NET6_0_OR_GREATER
                 if (allowDbCommand && allowDbBatch)
                     throw new InvalidOperationException();
                 else if (allowDbCommand)
@@ -448,14 +495,23 @@ namespace KikaPyde.AdoNetCore.Extensions
                     dbBatch = dbConnection.CreateBatch();
                     dbBatch.Transaction = dbTransaction;
                 }
+#else
+                if (allowDbCommand)
+                {
+                    dbCommand = dbConnection.CreateCommand();
+                    dbCommand.Transaction = dbTransaction;
+                }
+#endif
                 if (allowDbDataReader)
                 {
                     if (commandBehavior.HasValue)
                     {
                         if (dbCommand is not null)
                             dbDataReader = await dbCommand.ExecuteReaderAsync(commandBehavior.Value, cancellationToken);
+#if NET6_0_OR_GREATER
                         else if (dbBatch is not null)
                             dbDataReader = await dbBatch.ExecuteReaderAsync(commandBehavior.Value, cancellationToken);
+#endif
                         else
                             throw new NullReferenceException(nameof(dbDataReader));
                     }
@@ -463,8 +519,10 @@ namespace KikaPyde.AdoNetCore.Extensions
                     {
                         if (dbCommand is not null)
                             dbDataReader = await dbCommand.ExecuteReaderAsync(cancellationToken);
+#if NET6_0_OR_GREATER
                         else if (dbBatch is not null)
                             dbDataReader = await dbBatch.ExecuteReaderAsync(cancellationToken);
+#endif
                         else
                             throw new NullReferenceException(nameof(dbDataReader));
                     }
@@ -478,20 +536,28 @@ namespace KikaPyde.AdoNetCore.Extensions
                         => await tryFunc4.Invoke(dbConnection, dbTransaction, cancellationToken),
                     Func<DbConnection, DbCommand, CancellationToken, Task<T>> tryFunc4 when allowDbCommand && dbCommand is not null && !allowDbTransaction && !allowDbBatch && !allowDbDataReader
                         => await tryFunc4.Invoke(dbConnection, dbCommand, cancellationToken),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbBatch, CancellationToken, Task<T>> tryFunc4 when allowDbBatch && dbBatch is not null && !allowDbTransaction && !allowDbCommand && !allowDbDataReader
                         => await tryFunc4.Invoke(dbConnection, dbBatch, cancellationToken),
+#endif
                     Func<DbConnection, DbTransaction, DbCommand, CancellationToken, Task<T>> tryFunc5 when allowDbTransaction && dbTransaction is not null && allowDbCommand && dbCommand is not null && !allowDbBatch && !allowDbDataReader
                         => await tryFunc5.Invoke(dbConnection, dbTransaction, dbCommand, cancellationToken),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbTransaction, DbBatch, CancellationToken, Task<T>> tryFunc5 when allowDbTransaction && dbTransaction is not null && allowDbBatch && dbBatch is not null && !allowDbCommand && !allowDbDataReader
                         => await tryFunc5.Invoke(dbConnection, dbTransaction, dbBatch, cancellationToken),
+#endif
                     Func<DbConnection, DbCommand, DbDataReader, CancellationToken, Task<T>> tryFunc5 when allowDbCommand && dbCommand is not null && allowDbDataReader && dbDataReader is not null && !allowDbTransaction && !allowDbBatch
                         => await tryFunc5.Invoke(dbConnection, dbCommand, dbDataReader, cancellationToken),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbBatch, DbDataReader, CancellationToken, Task<T>> tryFunc5 when allowDbBatch && dbBatch is not null && allowDbDataReader && dbDataReader is not null && !allowDbTransaction && !allowDbCommand
                         => await tryFunc5.Invoke(dbConnection, dbBatch, dbDataReader, cancellationToken),
+#endif
                     Func<DbConnection, DbTransaction, DbCommand, DbDataReader, CancellationToken, Task<T>> tryFunc6 when allowDbTransaction && dbTransaction is not null && allowDbCommand && dbCommand is not null && allowDbDataReader && dbDataReader is not null && !allowDbBatch
                         => await tryFunc6.Invoke(dbConnection, dbTransaction, dbCommand, dbDataReader, cancellationToken),
+#if NET6_0_OR_GREATER
                     Func<DbConnection, DbTransaction, DbBatch, DbDataReader, CancellationToken, Task<T>> tryFunc6 when allowDbTransaction && dbTransaction is not null && allowDbBatch && dbBatch is not null && allowDbDataReader && dbDataReader is not null && !allowDbCommand
                         => await tryFunc6.Invoke(dbConnection, dbTransaction, dbBatch, dbDataReader, cancellationToken),
+#endif
                     _ => throw new InvalidCastException(nameof(tryFunc)),
                 };
                 if (dbTransaction is not null && usingOptions.AllowTransactionCommitOnSuccessTryFunc)
@@ -518,20 +584,28 @@ namespace KikaPyde.AdoNetCore.Extensions
                                 => await catchFunc5.Invoke(dbConnection, dbTransaction, tryException, catchCancellationToken ?? cancellationToken),
                             Func<DbConnection?, DbCommand?, Exception, CancellationToken, Task<T>> catchFunc5 when allowDbCommand && !allowDbTransaction && !allowDbBatch && !allowDbDataReader
                                 => await catchFunc5.Invoke(dbConnection, dbCommand, tryException, catchCancellationToken ?? cancellationToken),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbBatch?, Exception, CancellationToken, Task<T>> catchFunc5 when allowDbBatch && !allowDbTransaction && !allowDbBatch && !allowDbDataReader
                                 => await catchFunc5.Invoke(dbConnection, dbBatch, tryException, catchCancellationToken ?? cancellationToken),
+#endif
                             Func<DbConnection?, DbTransaction?, DbCommand?, Exception, CancellationToken, Task<T>> catchFunc6 when allowDbTransaction && allowDbCommand && !allowDbBatch && !allowDbDataReader
                                 => await catchFunc6.Invoke(dbConnection, dbTransaction, dbCommand, tryException, catchCancellationToken ?? cancellationToken),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbTransaction?, DbBatch?, Exception, CancellationToken, Task<T>> catchFunc6 when allowDbTransaction && allowDbBatch && !allowDbCommand && !allowDbDataReader
                                 => await catchFunc6.Invoke(dbConnection, dbTransaction, dbBatch, tryException, catchCancellationToken ?? cancellationToken),
+#endif
                             Func<DbConnection?, DbCommand?, DbDataReader?, Exception, CancellationToken, Task<T>> catchFunc6 when allowDbCommand && allowDbDataReader && !allowDbTransaction && !allowDbBatch
                                 => await catchFunc6.Invoke(dbConnection, dbCommand, dbDataReader, tryException, catchCancellationToken ?? cancellationToken),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbBatch?, DbDataReader?, Exception, CancellationToken, Task<T>> catchFunc6 when allowDbBatch && allowDbDataReader && !allowDbTransaction && !allowDbCommand
                                 => await catchFunc6.Invoke(dbConnection, dbBatch, dbDataReader, tryException, catchCancellationToken ?? cancellationToken),
+#endif
                             Func<DbConnection?, DbTransaction?, DbCommand?, DbDataReader?, Exception, CancellationToken, Task<T>> catchFunc7 when allowDbTransaction && allowDbCommand && allowDbDataReader && !allowDbBatch
                                 => await catchFunc7.Invoke(dbConnection, dbTransaction, dbCommand, dbDataReader, tryException, catchCancellationToken ?? cancellationToken),
+#if NET6_0_OR_GREATER
                             Func<DbConnection?, DbTransaction?, DbBatch?, DbDataReader?, Exception, CancellationToken, Task<T>> catchFunc7 when allowDbTransaction && allowDbBatch && allowDbDataReader && !allowDbCommand
                                 => await catchFunc7.Invoke(dbConnection, dbTransaction, dbBatch, dbDataReader, tryException, catchCancellationToken ?? cancellationToken),
+#endif                  
                             _ => throw new InvalidCastException(nameof(catchFunc)),
                         };
                         if (dbTransaction is not null && usingOptions.AllowTransactionCommitOnSuccessCatchFunc)
@@ -569,8 +643,10 @@ namespace KikaPyde.AdoNetCore.Extensions
                     await dbDataReader.CloseAsync();
                     await dbDataReader.DisposeAsync();
                 }
+#if NET6_0_OR_GREATER
                 if (dbBatch is not null)
                     await dbBatch.DisposeAsync();
+#endif
                 if (dbCommand is not null)
                     await dbCommand.DisposeAsync();
                 if (dbTransaction is not null)
@@ -637,6 +713,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#if NET6_0_OR_GREATER
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbBatch, CancellationToken, Task<T>> tryFunc,
@@ -656,6 +733,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#endif
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbCommand, CancellationToken, Task<T>> tryFunc,
@@ -676,6 +754,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#if NET6_0_OR_GREATER
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbBatch, CancellationToken, Task<T>> tryFunc,
@@ -696,6 +775,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#endif
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbCommand, DbDataReader, CancellationToken, Task<T>> tryFunc,
@@ -716,6 +796,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#if NET6_0_OR_GREATER
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbBatch, DbDataReader, CancellationToken, Task<T>> tryFunc,
@@ -736,6 +817,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#endif
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbCommand, DbDataReader, CancellationToken, Task<T>> tryFunc,
@@ -757,6 +839,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#if NET6_0_OR_GREATER
         public static async Task<T> UsingAsync<T>(
             this DbConnection dbConnection,
             Func<DbConnection, DbTransaction, DbBatch, DbDataReader, CancellationToken, Task<T>> tryFunc,
@@ -778,6 +861,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken,
                 catchCancellationToken: catchCancellationToken);
+#endif
         #endregion
         #region Execute DbCommand
         public static int ExecuteNonQuery(
@@ -825,62 +909,6 @@ namespace KikaPyde.AdoNetCore.Extensions
             Action<DbCommand> beforeExecute,
             Func<object?, T?>? constructor = null,
             Action<DbCommand, T?>? afterExecute = null,
-            IsolationLevel? isolationLevel = null,
-            IUsingOptions? usingOptions = null)
-            => dbConnection.Using(
-                tryFunc: (dbConnection, dbTransaction, dbCommand) => dbCommand.ExecuteScalar(
-                    beforeExecute: beforeExecute,
-                    constructor: constructor,
-                    afterExecute: afterExecute),
-                isolationLevel: isolationLevel,
-                usingOptions: usingOptions);
-        #endregion
-        #region Execute DbBatch
-        public static int ExecuteNonQuery(
-            this DbConnection dbConnection,
-            Action<DbBatch> beforeExecute,
-            Action<DbBatch>? afterExecute = null,
-            IsolationLevel? isolationLevel = null,
-            IUsingOptions? usingOptions = null)
-            => dbConnection.Using(
-                tryFunc: (dbConnection, dbTransaction, dbBatch) => dbBatch.ExecuteNonQuery(
-                    beforeExecute: beforeExecute,
-                    afterExecute: afterExecute),
-                isolationLevel: isolationLevel,
-                usingOptions: usingOptions);
-        public static T ExecuteReader<T>(
-            this DbConnection dbConnection,
-            Action<DbBatch> beforeExecute,
-            Func<DbDataReader, T>? constructor = null,
-            Action<DbBatch, T>? afterExecute = null,
-            CommandBehavior? commandBehavior = null,
-            IsolationLevel? isolationLevel = null,
-            IUsingOptions? usingOptions = null)
-            => dbConnection.Using(
-                tryFunc: (dbConnection, dbTransaction, dbBatch) => dbBatch.ExecuteReader(
-                    beforeExecute: beforeExecute,
-                    constructor: constructor,
-                    afterExecute: afterExecute,
-                    commandBehavior: commandBehavior),
-                isolationLevel: isolationLevel,
-                usingOptions: usingOptions);
-        public static object? ExecuteScalar(
-            this DbConnection dbConnection,
-            Action<DbBatch> beforeExecute,
-            Action<DbBatch, object?>? afterExecute = null,
-            IsolationLevel? isolationLevel = null,
-            IUsingOptions? usingOptions = null)
-            => dbConnection.Using(
-                tryFunc: (dbConnection, dbTransaction, dbCommand) => dbCommand.ExecuteScalar(
-                    beforeExecute: beforeExecute,
-                    afterExecute: afterExecute),
-                isolationLevel: isolationLevel,
-                usingOptions: usingOptions);
-        public static T? ExecuteScalar<T>(
-            this DbConnection dbConnection,
-            Action<DbBatch> beforeExecute,
-            Func<object?, T?>? constructor = null,
-            Action<DbBatch, T?>? afterExecute = null,
             IsolationLevel? isolationLevel = null,
             IUsingOptions? usingOptions = null)
             => dbConnection.Using(
@@ -960,6 +988,63 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken);
         #endregion
+#if NET6_0_OR_GREATER
+        #region Execute DbBatch
+        public static int ExecuteNonQuery(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch>? afterExecute = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.Using(
+                tryFunc: (dbConnection, dbTransaction, dbBatch) => dbBatch.ExecuteNonQuery(
+                    beforeExecute: beforeExecute,
+                    afterExecute: afterExecute),
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static T ExecuteReader<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, T>? constructor = null,
+            Action<DbBatch, T>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.Using(
+                tryFunc: (dbConnection, dbTransaction, dbBatch) => dbBatch.ExecuteReader(
+                    beforeExecute: beforeExecute,
+                    constructor: constructor,
+                    afterExecute: afterExecute,
+                    commandBehavior: commandBehavior),
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static object? ExecuteScalar(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, object?>? afterExecute = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.Using(
+                tryFunc: (dbConnection, dbTransaction, dbCommand) => dbCommand.ExecuteScalar(
+                    beforeExecute: beforeExecute,
+                    afterExecute: afterExecute),
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static T? ExecuteScalar<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<object?, T?>? constructor = null,
+            Action<DbBatch, T?>? afterExecute = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.Using(
+                tryFunc: (dbConnection, dbTransaction, dbCommand) => dbCommand.ExecuteScalar(
+                    beforeExecute: beforeExecute,
+                    constructor: constructor,
+                    afterExecute: afterExecute),
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        #endregion
         #region ExecuteAsync DbBatch
         public static async Task<int> ExecuteNonQueryAsync(
             this DbConnection dbConnection,
@@ -1029,11 +1114,12 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken);
         #endregion
+#endif
         #region GetEnumerable DbCommand
         public static TCollection GetCollection<TCollection, T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             Action<DbCommand, TCollection>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1067,7 +1153,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static List<T> GetList<T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             Action<DbCommand, List<T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1099,7 +1185,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static Dictionary<int, T> GetDictionary<T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             Action<DbCommand, Dictionary<int, T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1301,7 +1387,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             Action<DbCommand, TCollection>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1341,7 +1427,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
             Action<DbCommand, TCollection>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1381,7 +1467,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<List<T>> GetListAsync<T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             Action<DbCommand, List<T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1419,7 +1505,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<List<T>> GetListAsync<T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
             Action<DbCommand, List<T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1457,7 +1543,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             Action<DbCommand, Dictionary<int, T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1495,7 +1581,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbConnection dbConnection,
             Action<DbCommand> beforeExecute,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
             Action<DbCommand, Dictionary<int, T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null,
@@ -1724,6 +1810,703 @@ namespace KikaPyde.AdoNetCore.Extensions
                 usingOptions: usingOptions,
                 cancellationToken: cancellationToken);
         #endregion
+#if NET6_0_OR_GREATER
+        #region GetEnumerable DbBatch
+        public static TCollection GetCollection<TCollection, T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Action<DbBatch, TCollection>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            where TCollection : ICollection<T>, new()
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetCollection<TCollection, T>(
+                    constructorByIndex: constructorByIndex),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static TCollection GetCollection<TCollection, T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            Action<DbBatch, TCollection>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            where TCollection : ICollection<T>, new()
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetCollection<TCollection, T>(
+                    constructor: constructor),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<T> GetList<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Action<DbBatch, List<T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetList(
+                    constructorByIndex: constructorByIndex),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<T> GetList<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            Action<DbBatch, List<T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetList(
+                    constructor: constructor),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static Dictionary<int, T> GetDictionary<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Action<DbBatch, Dictionary<int, T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetDictionary(
+                    constructorByIndex: constructorByIndex),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static Dictionary<int, T> GetDictionary<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            Action<DbBatch, Dictionary<int, T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetDictionary(
+                    constructor: constructor),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static DataTable? GetSchemaTable(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, DataTable?>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dbDataReader => dbDataReader.GetSchemaTable(),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static DataTable GetDataTable(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, DataTable>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetDataTable,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static Dictionary<int, Dictionary<string, object?>> GetRawTable(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, Dictionary<int, Dictionary<string, object?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetRawTable,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?>> GetTuples<T1, T2>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?>> GetTuples<T1, T2, T3>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?>> GetTuples<T1, T2, T3, T4>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?>> GetTuples<T1, T2, T3, T4, T5>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4, T5>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>> GetTuples<T1, T2, T3, T4, T5, T6>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4, T5, T6>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>> GetTuples<T1, T2, T3, T4, T5, T6, T7>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4, T5, T6, T7>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>> GetTuples<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4, T5, T6, T7, T8>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>> GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>> GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
+        #endregion
+        #region GetEnumerableAsync DbBatch
+        public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Action<DbBatch, TCollection>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetCollectionAsync<TCollection, T>(
+                    constructorByIndex: constructorByIndex,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            Action<DbBatch, TCollection>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetCollectionAsync<TCollection, T>(
+                    constructor: constructor,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            Action<DbBatch, TCollection>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetCollectionAsync<TCollection, T>(
+                    constructorByIndex: constructorByIndex,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            Action<DbBatch, TCollection>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetCollectionAsync<TCollection, T>(
+                    constructor: constructor,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetListAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Action<DbBatch, List<T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetListAsync(
+                    constructorByIndex: constructorByIndex,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetListAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            Action<DbBatch, List<T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetListAsync(
+                    constructor: constructor,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetListAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            Action<DbBatch, List<T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetListAsync(
+                    constructorByIndex: constructorByIndex,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetListAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            Action<DbBatch, List<T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetListAsync(
+                    constructor: constructor,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Action<DbBatch, Dictionary<int, T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetDictionaryAsync(
+                    constructorByIndex: constructorByIndex,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            Action<DbBatch, Dictionary<int, T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetDictionaryAsync(
+                    constructor: constructor,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            Action<DbBatch, Dictionary<int, T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetDictionaryAsync(
+                    constructorByIndex: constructorByIndex,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            Action<DbBatch, Dictionary<int, T>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetDictionaryAsync(
+                    constructor: constructor,
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<DataTable?> GetSchemaTableAsync(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, DataTable?>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: async (dbDataReader, cancellationToken) => await dbDataReader.GetSchemaTableAsync(
+                    cancellationToken: cancellationToken),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<DataTable> GetDataTableAsync(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, DataTable>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetDataTableAsync,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, Dictionary<string, object?>>> GetRawTableAsync(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, Dictionary<int, Dictionary<string, object?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetRawTableAsync,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?>>> GetTuplesAsync<T1, T2>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?>>> GetTuplesAsync<T1, T2, T3>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?>>> GetTuplesAsync<T1, T2, T3, T4>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?>>> GetTuplesAsync<T1, T2, T3, T4, T5>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this DbConnection dbConnection,
+            Action<DbBatch> beforeExecute,
+            Action<DbBatch, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>>>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null,
+            CancellationToken cancellationToken = default)
+            => await dbConnection.ExecuteReaderAsync(
+                beforeExecute: beforeExecute,
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions,
+                cancellationToken: cancellationToken);
+        #endregion
+#endif
         #region Check/CheckAsync
         #region Internal
         private static bool TryFuncForCheckDbConnection(

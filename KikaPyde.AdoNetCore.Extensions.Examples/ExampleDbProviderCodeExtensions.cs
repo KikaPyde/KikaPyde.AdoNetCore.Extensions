@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.Sqlite;
 using Npgsql;
+using System;
 using System.Data.Common;
 
 namespace KikaPyde.AdoNetCore.Extensions.Examples

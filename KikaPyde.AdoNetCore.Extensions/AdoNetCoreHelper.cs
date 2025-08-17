@@ -1,4 +1,8 @@
-﻿namespace KikaPyde.AdoNetCore.Extensions
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace KikaPyde.AdoNetCore.Extensions
 {
     public static partial class AdoNetCoreHelper
     {

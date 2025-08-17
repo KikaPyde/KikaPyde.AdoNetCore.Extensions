@@ -1,4 +1,6 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 
 namespace KikaPyde.AdoNetCore.Extensions
 {
@@ -267,7 +269,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static TCollection GetCollection<TCollection, T>(
             this IDbConnection dbConnection,
             Action<IDbCommand> beforeExecute,
-            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             Action<IDbCommand, TCollection>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null)
@@ -297,7 +299,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static List<T> GetList<T>(
             this IDbConnection dbConnection,
             Action<IDbCommand> beforeExecute,
-            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             Action<IDbCommand, List<T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null)
@@ -325,7 +327,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static Dictionary<int, T> GetDictionary<T>(
             this IDbConnection dbConnection,
             Action<IDbCommand> beforeExecute,
-            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             Action<IDbCommand, Dictionary<int, T>>? afterExecute = null,
             CommandBehavior? commandBehavior = null,
             IsolationLevel? isolationLevel = null)
@@ -502,6 +504,22 @@ namespace KikaPyde.AdoNetCore.Extensions
                 tryFunc: _ => true,
                 catchFunc: (_, _) => false);
 
+        #endregion
+        #region HasRows
+        public static bool HasRows(
+            this IDbConnection dbConnection,
+            Action<IDbCommand> beforeExecute,
+            Action<IDbCommand, bool>? afterExecute = null,
+            CommandBehavior? commandBehavior = null,
+            IsolationLevel? isolationLevel = null,
+            IUsingOptions? usingOptions = null)
+            => dbConnection.ExecuteReader(
+                beforeExecute: beforeExecute,
+                constructor: dataReader => dataReader.Read(),
+                afterExecute: afterExecute,
+                commandBehavior: commandBehavior,
+                isolationLevel: isolationLevel,
+                usingOptions: usingOptions);
         #endregion
     }
 }

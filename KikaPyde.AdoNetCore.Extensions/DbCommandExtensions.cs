@@ -1,10 +1,15 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KikaPyde.AdoNetCore.Extensions
 {
     public static partial class AdoNetCoreHelper
     {
+        #region Using/UsingAsync
         public static T Using<T>(
             this DbCommand dbCommand,
             Func<DbCommand, DbDataReader, T> tryFunc,
@@ -54,6 +59,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 },
                 cancellationToken: cancellationToken);
         }
+        #endregion
         #region Execute
         private static int ExecuteNonQuery(
             this DbCommand dbCommand,
@@ -74,7 +80,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 {
                     var result = constructor is null
                         ? dbDataReader.Read()
-                            ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNull<T>().Item2
+                            ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
                             : throw new DataException()
                         : constructor.Invoke(dbDataReader);
                     return result;
@@ -139,7 +145,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 {
                     var result = constructor is null
                         ? await dbDataReader.ReadAsync(cancellationToken)
-                            ? (await dbDataReader.TakeFirstFieldValueOrThrowIfDbNullAsync<T>(cancellationToken)).Item2
+                            ? (await dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRangeAsync<T>(cancellationToken)).Item2
                             : throw new DataException()
                         : await constructor.Invoke(dbDataReader, cancellationToken);
                     return result;
@@ -189,7 +195,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         #region GetEnumerable
         public static TCollection GetCollection<TCollection, T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             where TCollection : ICollection<T>, new()
             => dbCommand.ExecuteReader(
@@ -207,7 +213,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 commandBehavior: commandBehavior);
         public static List<T> GetList<T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
                 constructor: dbDataReader => dbDataReader.GetList(
@@ -223,7 +229,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 commandBehavior: commandBehavior);
         public static Dictionary<int, T> GetDictionary<T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
                 constructor: dbDataReader => dbDataReader.GetDictionary(
@@ -247,73 +253,73 @@ namespace KikaPyde.AdoNetCore.Extensions
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetDataTable(),
+                constructor: (Func<DbDataReader, DataTable>)GetDataTable,
                 commandBehavior: commandBehavior);
         public static Dictionary<int, Dictionary<string, object?>> GetRawTable(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetRawTable(),
+                constructor: (Func<DbDataReader, Dictionary<int, Dictionary<string, object?>>>)GetRawTable,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?>> GetTuples<T1, T2>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?>>>)GetTuples<T1, T2>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?>> GetTuples<T1, T2, T3>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?>>>)GetTuples<T1, T2, T3>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?>> GetTuples<T1, T2, T3, T4>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?>>>)GetTuples<T1, T2, T3, T4>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?, T5?>> GetTuples<T1, T2, T3, T4, T5>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4, T5>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?, T5?>>>)GetTuples<T1, T2, T3, T4, T5>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>> GetTuples<T1, T2, T3, T4, T5, T6>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4, T5, T6>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>>>)GetTuples<T1, T2, T3, T4, T5, T6>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>> GetTuples<T1, T2, T3, T4, T5, T6, T7>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4, T5, T6, T7>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>>>)GetTuples<T1, T2, T3, T4, T5, T6, T7>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>> GetTuples<T1, T2, T3, T4, T5, T6, T7, T8>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4, T5, T6, T7, T8>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>>>)GetTuples<T1, T2, T3, T4, T5, T6, T7, T8>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>> GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>>>)GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>,
                 commandBehavior: commandBehavior);
         public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>> GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
             this DbCommand dbCommand,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
-                constructor: dbDataReader => dbDataReader.GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(),
+                constructor: (Func<DbDataReader, List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>>>)GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
                 commandBehavior: commandBehavior);
         #endregion
         #region GetEnumerableAsync
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>, new()
@@ -337,7 +343,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
             CommandBehavior? commandBehavior = null,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>, new()
@@ -361,7 +367,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 cancellationToken: cancellationToken);
         public static async Task<List<T>> GetListAsync<T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null,
             CancellationToken cancellationToken = default)
             => await dbCommand.GetCollectionAsync<List<T>, T>(
@@ -379,7 +385,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 cancellationToken: cancellationToken);
         public static async Task<List<T>> GetListAsync<T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
             CommandBehavior? commandBehavior = null,
             CancellationToken cancellationToken = default)
             => await dbCommand.GetCollectionAsync<List<T>, T>(
@@ -397,7 +403,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 cancellationToken: cancellationToken);
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null,
             CancellationToken cancellationToken = default)
             => await dbCommand.ExecuteReaderAsync(
@@ -419,7 +425,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 cancellationToken: cancellationToken);
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbCommand dbCommand,
-            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
             CommandBehavior? commandBehavior = null,
             CancellationToken cancellationToken = default)
             => await dbCommand.ExecuteReaderAsync(
@@ -463,6 +469,78 @@ namespace KikaPyde.AdoNetCore.Extensions
             CancellationToken cancellationToken = default)
             => await dbCommand.ExecuteReaderAsync(
                 constructor: GetRawTableAsync,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?>>> GetTuplesAsync<T1, T2>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?>>> GetTuplesAsync<T1, T2, T3>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?>>> GetTuplesAsync<T1, T2, T3, T4>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?>>> GetTuplesAsync<T1, T2, T3, T4, T5>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9>,
+                commandBehavior: commandBehavior,
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>>> GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this DbCommand dbCommand,
+            CommandBehavior? commandBehavior = null,
+            CancellationToken cancellationToken = default)
+            => await dbCommand.ExecuteReaderAsync(
+                constructor: GetTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
                 commandBehavior: commandBehavior,
                 cancellationToken: cancellationToken);
         #endregion
