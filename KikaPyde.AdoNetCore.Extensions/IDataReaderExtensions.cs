@@ -287,75 +287,60 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static TCollection AddRange<TCollection, T>(
             this IDataReader dataReader,
             TCollection collection,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             where TCollection : ICollection<T>
             => dataReader.InternalAddResultRange<TCollection, T>(
                 collection: collection,
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
+                allowNextResult: false,
                 allowAggregateResult: false);
         public static TCollection AddRange<TCollection, T>(
             this IDataReader dataReader,
             TCollection collection,
-            Func<IDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
             where TCollection : ICollection<T>
             => dataReader.AddRange<TCollection, T>(
                 collection: collection,
-                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x),
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructor is null ? null : (x, _) => constructor(x));
         public static TCollection GetCollection<TCollection, T>(
             this IDataReader dataReader,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             where TCollection : ICollection<T>, new()
             => dataReader.AddRange(
                 collection: new TCollection(),
-                constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructorByIndex);
         public static TCollection GetCollection<TCollection, T>(
             this IDataReader dataReader,
-            Func<IDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
             where TCollection : ICollection<T>, new()
             => dataReader.AddRange(
                 collection: new TCollection(),
-                constructor: constructor,
-                allowNextResult: allowNextResult);
+                constructor: constructor);
         public static List<T> GetList<T>(
             this IDataReader dataReader,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             => dataReader.GetCollection<List<T>, T>(
-                constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructorByIndex);
         public static List<T> GetList<T>(
             this IDataReader dataReader,
-            Func<IDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
             => dataReader.GetCollection<List<T>, T>(
-                constructor: constructor,
-                allowNextResult: allowNextResult);
+                constructor: constructor);
         public static Dictionary<int, T> GetDictionary<T>(
             this IDataReader dataReader,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             => dataReader.GetCollection<Dictionary<int, T>, KeyValuePair<int, T>>(
-                constructorByIndex: (dataReader, resultIndex, globalIndex, index) => dataReader.GetKeyValuePairValueTuple<T>(
+                constructorByIndex: (dataReader, index) => dataReader.GetKeyValuePairValueTuple<T>(
                     constructorByIndex: constructorByIndex,
-                    resultIndex: resultIndex,
-                    globalIndex: globalIndex,
+                    resultIndex: default,
+                    globalIndex: default,
                     index: index,
-                    allowAggregateResult: false),
-                allowNextResult: allowNextResult);
+                    allowAggregateResult: false));
         public static Dictionary<int, T> GetDictionary<T>(
             this IDataReader dataReader,
-            Func<IDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
             => dataReader.GetDictionary<T>(
-                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x),
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructor is null ? null : (x, _) => constructor(x));
         public static DataTable GetDataTable(
             this IDataReader dataReader)
         {
@@ -377,7 +362,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static Dictionary<int, Dictionary<string, object?>> GetRawTable(
             this IDataReader dataReader)
             => dataReader.GetDictionary(
-                constructor: (dataReader) => ValueTuple.Create(true, dataReader.GetRawRow()));
+                constructor: dataReader => ValueTuple.Create(true, dataReader.GetRawRow()));
         public static List<Tuple<T1?, T2?>> GetTuples<T1, T2>(
             this IDataReader dataReader)
             => dataReader.GetList(
@@ -574,8 +559,182 @@ namespace KikaPyde.AdoNetCore.Extensions
                 constructorByIndex: (dataReader, _) => ValueTuple.Create(true, func(dataReader)));
         public static Dictionary<int, Dictionary<int, Dictionary<string, object?>>> GetRawDatabase(
             this IDataReader dataReader)
-            => dataReader.GetResultDictionary(
+            => GetResultDictionary(
+                dataReader: dataReader,
                 func: GetRawTable);
+        #endregion
+        #region GlobalRange
+        public static TCollection AddGlobalRange<TCollection, T>(
+            this IDataReader dataReader,
+            TCollection collection,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            where TCollection : ICollection<T>
+            => dataReader.InternalAddResultRange<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructorByIndex,
+                allowNextResult: true,
+                allowAggregateResult: false);
+        public static TCollection AddGlobalRange<TCollection, T>(
+            this IDataReader dataReader,
+            TCollection collection,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
+            where TCollection : ICollection<T>
+            => dataReader.AddGlobalRange<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x));
+        public static TCollection GetGlobalCollection<TCollection, T>(
+            this IDataReader dataReader,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            where TCollection : ICollection<T>, new()
+            => dataReader.AddGlobalRange(
+                collection: new TCollection(),
+                constructorByIndex: constructorByIndex);
+        public static TCollection GetGlobalCollection<TCollection, T>(
+            this IDataReader dataReader,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
+            where TCollection : ICollection<T>, new()
+            => dataReader.AddGlobalRange(
+                collection: new TCollection(),
+                constructor: constructor);
+        public static List<T> GetGlobalList<T>(
+            this IDataReader dataReader,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            => dataReader.GetGlobalCollection<List<T>, T>(
+                constructorByIndex: constructorByIndex);
+        public static List<T> GetGlobalList<T>(
+            this IDataReader dataReader,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
+            => dataReader.GetGlobalCollection<List<T>, T>(
+                constructor: constructor);
+        public static Dictionary<int, T> GetGlobalDictionary<T>(
+            this IDataReader dataReader,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            => dataReader.GetGlobalCollection<Dictionary<int, T>, KeyValuePair<int, T>>(
+                constructorByIndex: (dataReader, resultIndex, globalIndex, index) => dataReader.GetKeyValuePairValueTuple<T>(
+                    constructorByIndex: constructorByIndex,
+                    resultIndex: resultIndex,
+                    globalIndex: globalIndex,
+                    index: index,
+                    allowAggregateResult: false));
+        public static Dictionary<int, T> GetGlobalDictionary<T>(
+            this IDataReader dataReader,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor)
+            => dataReader.GetGlobalDictionary<T>(
+                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x));
+        public static Dictionary<int, Dictionary<string, object?>> GetGlobalRawTable(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalDictionary(
+                constructor: dataReader => ValueTuple.Create(true, dataReader.GetRawRow()));
+        public static List<Tuple<T1?, T2?>> GetGlobalTuples<T1, T2>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2)));
+        public static List<Tuple<T1?, T2?, T3?>> GetGlobalTuples<T1, T2, T3>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?>> GetGlobalTuples<T1, T2, T3, T4>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?>> GetGlobalTuples<T1, T2, T3, T4, T5>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>> GetGlobalTuples<T1, T2, T3, T4, T5, T6>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T8>(7).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    new Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2,
+                        Tuple.Create(
+                            dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T8>(7).Item2,
+                            dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T9>(8).Item2))));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this IDataReader dataReader)
+            => dataReader.GetGlobalList(
+                constructor: dataReader => ValueTuple.Create(
+                    true,
+                    new Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>(
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2,
+                        Tuple.Create(
+                            dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T8>(7).Item2,
+                            dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T9>(8).Item2,
+                            dataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T10>(10).Item2))));
         #endregion
     }
 }

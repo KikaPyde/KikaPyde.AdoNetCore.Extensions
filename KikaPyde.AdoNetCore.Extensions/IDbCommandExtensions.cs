@@ -12,20 +12,20 @@ namespace KikaPyde.AdoNetCore.Extensions
             Func<IDbCommand, IDataReader?, Exception, T>? catchFunc = null,
             CommandBehavior? commandBehavior = null)
         {
-            IDataReader? dbDataReader = null;
+            IDataReader? dataReader = null;
             return TryCatchFinally(
                 tryFunc: () => tryFunc(
                     dbCommand,
-                    dbDataReader = commandBehavior.HasValue
+                    dataReader = commandBehavior.HasValue
                         ? dbCommand.ExecuteReader(commandBehavior.Value)
                         : dbCommand.ExecuteReader()),
-                catchFunc: catchFunc is null ? null : tryException => catchFunc(dbCommand, dbDataReader, tryException),
+                catchFunc: catchFunc is null ? null : tryException => catchFunc(dbCommand, dataReader, tryException),
                 finallyAction: () =>
                 {
-                    if (dbDataReader is not null)
+                    if (dataReader is not null)
                     {
-                        dbDataReader.Close();
-                        dbDataReader.Dispose();
+                        dataReader.Close();
+                        dataReader.Dispose();
                     }
                 });
         }
@@ -45,13 +45,13 @@ namespace KikaPyde.AdoNetCore.Extensions
             Func<IDataReader, T>? constructor = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.Using(
-                tryFunc: (dbCommand, dbDataReader) =>
+                tryFunc: (dbCommand, dataReader) =>
                 {
                     var result = constructor is null
-                        ? dbDataReader.Read()
-                            ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
+                        ? dataReader.Read()
+                            ? dataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
                             : throw new DataException()
-                        : constructor.Invoke(dbDataReader);
+                        : constructor.Invoke(dataReader);
                     return result;
                 },
                 commandBehavior: commandBehavior);
@@ -93,9 +93,10 @@ namespace KikaPyde.AdoNetCore.Extensions
         }
         #endregion
         #region GetEnumerable
+        #region Range
         public static TCollection GetCollection<TCollection, T>(
             this IDbCommand dbCommand,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             where TCollection : ICollection<T>, new()
             => dbCommand.ExecuteReader(
@@ -113,7 +114,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 commandBehavior: commandBehavior);
         public static List<T> GetList<T>(
             this IDbCommand dbCommand,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
                 constructor: dataReader => dataReader.GetList(
@@ -129,7 +130,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 commandBehavior: commandBehavior);
         public static Dictionary<int, T> GetDictionary<T>(
             this IDbCommand dbCommand,
-            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
             CommandBehavior? commandBehavior = null)
             => dbCommand.ExecuteReader(
                 constructor: dataReader => dataReader.GetDictionary(
@@ -215,6 +216,202 @@ namespace KikaPyde.AdoNetCore.Extensions
             => dbCommand.ExecuteReader(
                 constructor: GetTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
                 commandBehavior: commandBehavior);
+        #endregion
+        #region ResultRange
+        public static TCollection GetResultCollection<TCollection, T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            CommandBehavior? commandBehavior = null)
+            where TCollection : ICollection<T>, new()
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultCollection<TCollection, T>(
+                    constructorByIndex: constructorByIndex),
+                commandBehavior: commandBehavior);
+        public static TCollection GetResultCollection<TCollection, T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor,
+            CommandBehavior? commandBehavior = null)
+            where TCollection : ICollection<T>, new()
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultCollection<TCollection, T>(
+                    constructor: constructor),
+                commandBehavior: commandBehavior);
+        public static TCollection GetResultCollection<TCollection, T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, T> func,
+            CommandBehavior? commandBehavior = null)
+            where TCollection : ICollection<T>, new()
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultCollection<TCollection, T>(
+                    func: func),
+                commandBehavior: commandBehavior);
+        public static List<T> GetResultList<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultList<T>(
+                    constructorByIndex: constructorByIndex),
+                commandBehavior: commandBehavior);
+        public static List<T> GetResultList<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultList<T>(
+                    constructor: constructor),
+                commandBehavior: commandBehavior);
+        public static List<T> GetResultList<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, T> func,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultList<T>(
+                    func: func),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, T> GetResultDictionary<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultDictionary<T>(
+                    constructorByIndex: constructorByIndex),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, T> GetResultDictionary<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultDictionary<T>(
+                    constructor: constructor),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, T> GetResultDictionary<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, T> func,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetResultDictionary<T>(
+                    func: func),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, Dictionary<int, Dictionary<string, object?>>> GetRawDatabase(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetRawDatabase,
+                commandBehavior: commandBehavior);
+        #endregion
+        #region GlobalRange
+        public static TCollection GetGlobalCollection<TCollection, T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            CommandBehavior? commandBehavior = null)
+            where TCollection : ICollection<T>, new()
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetGlobalCollection<TCollection, T>(
+                    constructorByIndex: constructorByIndex),
+                commandBehavior: commandBehavior);
+        public static TCollection GetGlobalCollection<TCollection, T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor,
+            CommandBehavior? commandBehavior = null)
+            where TCollection : ICollection<T>, new()
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetGlobalCollection<TCollection, T>(
+                    constructor: constructor),
+                commandBehavior: commandBehavior);
+        public static List<T> GetGlobalList<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetGlobalList<T>(
+                    constructorByIndex: constructorByIndex),
+                commandBehavior: commandBehavior);
+        public static List<T> GetGlobalList<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetGlobalList<T>(
+                    constructor: constructor),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, T> GetGlobalDictionary<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetGlobalDictionary<T>(
+                    constructorByIndex: constructorByIndex),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, T> GetGlobalDictionary<T>(
+            this IDbCommand dbCommand,
+            Func<IDataReader, ValueTuple<bool, T>>? constructor,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: dataReader => dataReader.GetGlobalDictionary<T>(
+                    constructor: constructor),
+                commandBehavior: commandBehavior);
+        public static Dictionary<int, Dictionary<string, object?>> GetGlobalRawTable(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalRawTable,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?>> GetGlobalTuples<T1, T2>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?>> GetGlobalTuples<T1, T2, T3>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?>> GetGlobalTuples<T1, T2, T3, T4>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?>> GetGlobalTuples<T1, T2, T3, T4, T5>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4, T5>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>> GetGlobalTuples<T1, T2, T3, T4, T5, T6>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4, T5, T6>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>,
+                commandBehavior: commandBehavior);
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this IDbCommand dbCommand,
+            CommandBehavior? commandBehavior = null)
+            => dbCommand.ExecuteReader(
+                constructor: GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>,
+                commandBehavior: commandBehavior);
+        #endregion
         #endregion
         public static bool HasRows(
             this IDbCommand dbCommand,

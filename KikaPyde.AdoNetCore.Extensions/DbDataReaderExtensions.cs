@@ -287,75 +287,60 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static TCollection AddRange<TCollection, T>(
             this DbDataReader dbDataReader,
             TCollection collection,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             where TCollection : ICollection<T>
             => dbDataReader.InternalAddResultRange<TCollection, T>(
                 collection: collection,
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
+                allowNextResult: false,
                 allowAggregateResult: false);
         public static TCollection AddRange<TCollection, T>(
             this DbDataReader dbDataReader,
             TCollection collection,
-            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
             where TCollection : ICollection<T>
             => dbDataReader.AddRange<TCollection, T>(
                 collection: collection,
-                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x),
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructor is null ? null : (x, _) => constructor(x));
         public static TCollection GetCollection<TCollection, T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             where TCollection : ICollection<T>, new()
             => dbDataReader.AddRange(
                 collection: new TCollection(),
-                constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructorByIndex);
         public static TCollection GetCollection<TCollection, T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
             where TCollection : ICollection<T>, new()
             => dbDataReader.AddRange(
                 collection: new TCollection(),
-                constructor: constructor,
-                allowNextResult: allowNextResult);
+                constructor: constructor);
         public static List<T> GetList<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             => dbDataReader.GetCollection<List<T>, T>(
-                constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructorByIndex);
         public static List<T> GetList<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
             => dbDataReader.GetCollection<List<T>, T>(
-                constructor: constructor,
-                allowNextResult: allowNextResult);
+                constructor: constructor);
         public static Dictionary<int, T> GetDictionary<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null,
-            bool allowNextResult = false)
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex = null)
             => dbDataReader.GetCollection<Dictionary<int, T>, KeyValuePair<int, T>>(
-                constructorByIndex: (dbDataReader, resultIndex, globalIndex, index) => dbDataReader.GetKeyValuePairValueTuple<T>(
+                constructorByIndex: (dbDataReader, index) => dbDataReader.GetKeyValuePairValueTuple<T>(
                     constructorByIndex: constructorByIndex,
-                    resultIndex: resultIndex,
-                    globalIndex: globalIndex,
+                    resultIndex: default,
+                    globalIndex: default,
                     index: index,
-                    allowAggregateResult: false),
-                allowNextResult: allowNextResult);
+                    allowAggregateResult: false));
         public static Dictionary<int, T> GetDictionary<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false)
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
             => dbDataReader.GetDictionary<T>(
-                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x),
-                allowNextResult: allowNextResult);
+                constructorByIndex: constructor is null ? null : (x, _) => constructor(x));
         public static DataTable GetDataTable(
             this DbDataReader dbDataReader)
         {
@@ -577,6 +562,179 @@ namespace KikaPyde.AdoNetCore.Extensions
             => GetResultDictionary(
                 dbDataReader: dbDataReader,
                 func: GetRawTable);
+        #endregion
+        #region GlobalRange
+        public static TCollection AddGlobalRange<TCollection, T>(
+            this DbDataReader dbDataReader,
+            TCollection collection,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            where TCollection : ICollection<T>
+            => dbDataReader.InternalAddResultRange<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructorByIndex,
+                allowNextResult: true,
+                allowAggregateResult: false);
+        public static TCollection AddGlobalRange<TCollection, T>(
+            this DbDataReader dbDataReader,
+            TCollection collection,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
+            where TCollection : ICollection<T>
+            => dbDataReader.AddGlobalRange<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x));
+        public static TCollection GetGlobalCollection<TCollection, T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            where TCollection : ICollection<T>, new()
+            => dbDataReader.AddGlobalRange(
+                collection: new TCollection(),
+                constructorByIndex: constructorByIndex);
+        public static TCollection GetGlobalCollection<TCollection, T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
+            where TCollection : ICollection<T>, new()
+            => dbDataReader.AddGlobalRange(
+                collection: new TCollection(),
+                constructor: constructor);
+        public static List<T> GetGlobalList<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            => dbDataReader.GetGlobalCollection<List<T>, T>(
+                constructorByIndex: constructorByIndex);
+        public static List<T> GetGlobalList<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
+            => dbDataReader.GetGlobalCollection<List<T>, T>(
+                constructor: constructor);
+        public static Dictionary<int, T> GetGlobalDictionary<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex = null)
+            => dbDataReader.GetGlobalCollection<Dictionary<int, T>, KeyValuePair<int, T>>(
+                constructorByIndex: (dbDataReader, resultIndex, globalIndex, index) => dbDataReader.GetKeyValuePairValueTuple<T>(
+                    constructorByIndex: constructorByIndex,
+                    resultIndex: resultIndex,
+                    globalIndex: globalIndex,
+                    index: index,
+                    allowAggregateResult: false));
+        public static Dictionary<int, T> GetGlobalDictionary<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor)
+            => dbDataReader.GetGlobalDictionary<T>(
+                constructorByIndex: constructor is null ? null : (x, _, _, _) => constructor(x));
+        public static Dictionary<int, Dictionary<string, object?>> GetGlobalRawTable(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalDictionary(
+                constructor: dbDataReader => ValueTuple.Create(true, dbDataReader.GetRawRow()));
+        public static List<Tuple<T1?, T2?>> GetGlobalTuples<T1, T2>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2)));
+        public static List<Tuple<T1?, T2?, T3?>> GetGlobalTuples<T1, T2, T3>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?>> GetGlobalTuples<T1, T2, T3, T4>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?>> GetGlobalTuples<T1, T2, T3, T4, T5>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>> GetGlobalTuples<T1, T2, T3, T4, T5, T6>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T8>(7).Item2)));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    new Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2,
+                        Tuple.Create(
+                            dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T8>(7).Item2,
+                            dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T9>(8).Item2))));
+        public static List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>> GetGlobalTuples<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this DbDataReader dbDataReader)
+            => dbDataReader.GetGlobalList(
+                constructor: dbDataReader => ValueTuple.Create(
+                    true,
+                    new Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>(
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T1>(0).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T2>(1).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T3>(2).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T4>(3).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T5>(4).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T6>(5).Item2,
+                        dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T7>(6).Item2,
+                        Tuple.Create(
+                            dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T8>(7).Item2,
+                            dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T9>(8).Item2,
+                            dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T10>(10).Item2))));
         #endregion
         #endregion
         #region Async
@@ -901,173 +1059,142 @@ namespace KikaPyde.AdoNetCore.Extensions
         public static async Task<TCollection> AddRangeAsync<TCollection, T>(
             this DbDataReader dbDataReader,
             TCollection collection,
-            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>
             => await dbDataReader.InternalAddResultRangeAsync<TCollection, T>(
                 collection: collection,
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
+                allowNextResult: false,
                 allowAggregateResult: false,
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> AddRangeAsync<TCollection, T>(
             this DbDataReader dbDataReader,
             TCollection collection,
             Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>
             => await dbDataReader.AddRangeAsync<TCollection, T>(
                 collection: collection,
-                constructorByIndex: constructor is null ? null : async (dbDataReader, _, _, _, cancellationToken) => await constructor(dbDataReader, cancellationToken),
-                allowNextResult: allowNextResult,
+                constructorByIndex: constructor is null ? null : async (dbDataReader, _, cancellationToken) => await constructor(dbDataReader, cancellationToken),
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> AddRangeAsync<TCollection, T>(
             this DbDataReader dbDataReader,
             TCollection collection,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>
             => await dbDataReader.AddRangeAsync<TCollection, T>(
                 collection: collection,
-                constructorByIndex: constructorByIndex is null ? null : (dbDataReader, resultIndex, globalIndex, index, _) => Task.FromResult(constructorByIndex(dbDataReader, resultIndex, globalIndex, index)),
-                allowNextResult: allowNextResult,
+                constructorByIndex: constructorByIndex is null ? null : (dbDataReader, index, _) => Task.FromResult(constructorByIndex(dbDataReader, index)),
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> AddRangeAsync<TCollection, T>(
             this DbDataReader dbDataReader,
             TCollection collection,
             Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>
             => await dbDataReader.AddRangeAsync<TCollection, T>(
                 collection: collection,
-                constructorByIndex: constructor is null ? null : (dbDataReader, _, _, _) => constructor(dbDataReader),
-                allowNextResult: allowNextResult,
+                constructorByIndex: constructor is null ? null : (dbDataReader, _) => constructor(dbDataReader),
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>, new()
             => await dbDataReader.AddRangeAsync(
                 collection: new TCollection(),
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbDataReader dbDataReader,
             Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>, new()
             => await dbDataReader.AddRangeAsync(
                 collection: new TCollection(),
                 constructor: constructor,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>, new()
             => await dbDataReader.AddRangeAsync(
                 collection: new TCollection(),
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<TCollection> GetCollectionAsync<TCollection, T>(
             this DbDataReader dbDataReader,
             Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             where TCollection : ICollection<T>, new()
             => await dbDataReader.AddRangeAsync(
                 collection: new TCollection(),
                 constructor: constructor,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<List<T>> GetListAsync<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetCollectionAsync<List<T>, T>(
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<List<T>> GetListAsync<T>(
             this DbDataReader dbDataReader,
             Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetCollectionAsync<List<T>, T>(
                 constructor: constructor,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<List<T>> GetListAsync<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetCollectionAsync<List<T>, T>(
                 constructorByIndex: constructorByIndex,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<List<T>> GetListAsync<T>(
             this DbDataReader dbDataReader,
             Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetCollectionAsync<List<T>, T>(
                 constructor: constructor,
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetCollectionAsync<Dictionary<int, T>, KeyValuePair<int, T>>(
-                constructorByIndex: async (dbDataReader, resultIndex, globalIndex, index, cancellationToken) => await dbDataReader.GetKeyValuePairValueTupleAsync<T>(
+                constructorByIndex: async (dbDataReader, index, cancellationToken) => await dbDataReader.GetKeyValuePairValueTupleAsync<T>(
                     constructorByIndex: constructorByIndex,
-                    resultIndex: resultIndex,
-                    globalIndex: globalIndex,
+                    resultIndex: default,
+                    globalIndex: default,
                     index: index,
                     allowAggregateResult: false,
                     cancellationToken: cancellationToken),
-                allowNextResult: allowNextResult,
                 cancellationToken: cancellationToken);
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbDataReader dbDataReader,
             Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetDictionaryAsync<T>(
-                constructorByIndex: constructor is null ? null : (dbDataReader, _, _, _, cancellationToken) => constructor(dbDataReader, cancellationToken),
-                allowNextResult: allowNextResult,
+                constructorByIndex: constructor is null ? null : (dbDataReader, _, cancellationToken) => constructor(dbDataReader, cancellationToken),
                 cancellationToken: cancellationToken);
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbDataReader dbDataReader,
-            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
-            bool allowNextResult = false,
+            Func<DbDataReader, int, ValueTuple<bool, T>>? constructorByIndex,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetDictionaryAsync<T>(
-                constructorByIndex: constructorByIndex is null ? null : (dbDataReader, resultIndex, globalIndex, index, _) => Task.FromResult(constructorByIndex(dbDataReader, resultIndex, globalIndex, index)),
-                allowNextResult: allowNextResult,
+                constructorByIndex: constructorByIndex is null ? null : (dbDataReader, index, _) => Task.FromResult(constructorByIndex(dbDataReader, index)),
                 cancellationToken: cancellationToken);
         public static async Task<Dictionary<int, T>> GetDictionaryAsync<T>(
             this DbDataReader dbDataReader,
             Func<DbDataReader, ValueTuple<bool, T>>? constructor,
-            bool allowNextResult = false,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetDictionaryAsync<T>(
-                constructorByIndex: constructor is null ? null : (dbDataReader, _, _, _) => constructor(dbDataReader),
-                allowNextResult: allowNextResult,
+                constructorByIndex: constructor is null ? null : (dbDataReader, _) => constructor(dbDataReader),
                 cancellationToken: cancellationToken);
         public static async Task<DataTable> GetDataTableAsync(
             this DbDataReader dbDataReader,
@@ -1092,7 +1219,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             this DbDataReader dbDataReader,
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetDictionaryAsync(
-                constructorByIndex: async (dbDataReader, resultIndex, globalIndex, index, cancellationToken) => ValueTuple.Create(true, await dbDataReader.GetRawRowAsync(cancellationToken)),
+                constructorByIndex: async (dbDataReader, index, cancellationToken) => ValueTuple.Create(true, await dbDataReader.GetRawRowAsync(cancellationToken)),
                 cancellationToken: cancellationToken);
         public static async Task<List<Tuple<T1?, T2?>>> GetTuplesAsync<T1, T2>(
             this DbDataReader dbDataReader,
@@ -1335,6 +1462,282 @@ namespace KikaPyde.AdoNetCore.Extensions
             CancellationToken cancellationToken = default)
             => await dbDataReader.GetResultDictionaryAsync(
                 func: GetRawTableAsync,
+                cancellationToken: cancellationToken);
+        #endregion
+        #region GlobalRangeAsync
+        public static async Task<TCollection> AddGlobalRangeAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            TCollection collection,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>
+            => await dbDataReader.InternalAddResultRangeAsync<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructorByIndex,
+                allowNextResult: true,
+                allowAggregateResult: false,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> AddGlobalRangeAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            TCollection collection,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>
+            => await dbDataReader.AddGlobalRangeAsync<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructor is null ? null : async (dbDataReader, _, _, _, cancellationToken) => await constructor(dbDataReader, cancellationToken),
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> AddGlobalRangeAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            TCollection collection,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>
+            => await dbDataReader.AddGlobalRangeAsync<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructorByIndex is null ? null : (dbDataReader, resultIndex, globalIndex, index, _) => Task.FromResult(constructorByIndex(dbDataReader, resultIndex, globalIndex, index)),
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> AddGlobalRangeAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            TCollection collection,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>
+            => await dbDataReader.AddGlobalRangeAsync<TCollection, T>(
+                collection: collection,
+                constructorByIndex: constructor is null ? null : (dbDataReader, _, _, _) => constructor(dbDataReader),
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetGlobalCollectionAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbDataReader.AddGlobalRangeAsync(
+                collection: new TCollection(),
+                constructorByIndex: constructorByIndex,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetGlobalCollectionAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbDataReader.AddGlobalRangeAsync(
+                collection: new TCollection(),
+                constructor: constructor,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetGlobalCollectionAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbDataReader.AddGlobalRangeAsync(
+                collection: new TCollection(),
+                constructorByIndex: constructorByIndex,
+                cancellationToken: cancellationToken);
+        public static async Task<TCollection> GetGlobalCollectionAsync<TCollection, T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            CancellationToken cancellationToken = default)
+            where TCollection : ICollection<T>, new()
+            => await dbDataReader.AddGlobalRangeAsync(
+                collection: new TCollection(),
+                constructor: constructor,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetGlobalListAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalCollectionAsync<List<T>, T>(
+                constructorByIndex: constructorByIndex,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetGlobalListAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalCollectionAsync<List<T>, T>(
+                constructor: constructor,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetGlobalListAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalCollectionAsync<List<T>, T>(
+                constructorByIndex: constructorByIndex,
+                cancellationToken: cancellationToken);
+        public static async Task<List<T>> GetGlobalListAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalCollectionAsync<List<T>, T>(
+                constructor: constructor,
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetGlobalDictionaryAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, CancellationToken, Task<ValueTuple<bool, T>>>? constructorByIndex = null,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalCollectionAsync<Dictionary<int, T>, KeyValuePair<int, T>>(
+                constructorByIndex: async (dbDataReader, resultIndex, globalIndex, index, cancellationToken) => await dbDataReader.GetKeyValuePairValueTupleAsync<T>(
+                    constructorByIndex: constructorByIndex,
+                    resultIndex: resultIndex,
+                    globalIndex: globalIndex,
+                    index: index,
+                    allowAggregateResult: false,
+                    cancellationToken: cancellationToken),
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetGlobalDictionaryAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, CancellationToken, Task<ValueTuple<bool, T>>>? constructor,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalDictionaryAsync<T>(
+                constructorByIndex: constructor is null ? null : (dbDataReader, _, _, _, cancellationToken) => constructor(dbDataReader, cancellationToken),
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetGlobalDictionaryAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, int, int, int, ValueTuple<bool, T>>? constructorByIndex,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalDictionaryAsync<T>(
+                constructorByIndex: constructorByIndex is null ? null : (dbDataReader, resultIndex, globalIndex, index, _) => Task.FromResult(constructorByIndex(dbDataReader, resultIndex, globalIndex, index)),
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, T>> GetGlobalDictionaryAsync<T>(
+            this DbDataReader dbDataReader,
+            Func<DbDataReader, ValueTuple<bool, T>>? constructor,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalDictionaryAsync<T>(
+                constructorByIndex: constructor is null ? null : (dbDataReader, _, _, _) => constructor(dbDataReader),
+                cancellationToken: cancellationToken);
+        public static async Task<Dictionary<int, Dictionary<string, object?>>> GetGlobalRawTableAsync(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalDictionaryAsync(
+                constructorByIndex: async (dbDataReader, resultIndex, globalIndex, index, cancellationToken) => ValueTuple.Create(true, await dbDataReader.GetRawRowAsync(cancellationToken)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?>>> GetGlobalTuplesAsync<T1, T2>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?>>> GetGlobalTuplesAsync<T1, T2, T3>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?>>> GetGlobalTuplesAsync<T1, T2, T3, T4>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?>>> GetGlobalTuplesAsync<T1, T2, T3, T4, T5>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T5>(4, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?>>> GetGlobalTuplesAsync<T1, T2, T3, T4, T5, T6>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T5>(4, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T6>(5, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?>>> GetGlobalTuplesAsync<T1, T2, T3, T4, T5, T6, T7>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T5>(4, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T6>(5, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T7>(6, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?>>>> GetGlobalTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    Tuple.Create(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T5>(4, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T6>(5, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T7>(6, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T8>(7, cancellationToken)).Item2)),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>>> GetGlobalTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    new Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?>>(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T5>(4, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T6>(5, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T7>(6, cancellationToken)).Item2,
+                        Tuple.Create(
+                            (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T8>(7, cancellationToken)).Item2,
+                            (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T9>(8, cancellationToken)).Item2))),
+                cancellationToken: cancellationToken);
+        public static async Task<List<Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>>> GetGlobalTuplesAsync<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+            this DbDataReader dbDataReader,
+            CancellationToken cancellationToken = default)
+            => await dbDataReader.GetGlobalListAsync(
+                constructor: async (dbDataReader, cancellationToken) => ValueTuple.Create(
+                    true,
+                    new Tuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, Tuple<T8?, T9?, T10?>>(
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T1>(0, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T2>(1, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T3>(2, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T4>(3, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T5>(4, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T6>(5, cancellationToken)).Item2,
+                        (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T7>(6, cancellationToken)).Item2,
+                        Tuple.Create(
+                            (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T8>(7, cancellationToken)).Item2,
+                            (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T9>(8, cancellationToken)).Item2,
+                            (await dbDataReader.TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T10>(9, cancellationToken)).Item2))),
                 cancellationToken: cancellationToken);
         #endregion
         #endregion
