@@ -12,12 +12,12 @@
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>ADO.NET;database;Data;extensions</PackageTags>
-    <AssemblyVersion>1.1.1.0</AssemblyVersion>
+    <AssemblyVersion>1.1.2.0</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
     <VersionPrefix>$(AssemblyVersion)</VersionPrefix>
     <Description>Extension methods for ADO.NET</Description>
-    <PackageReleaseNotes>Redesigned the "DbDataReader/IDataReader" methods and everything related to them</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
