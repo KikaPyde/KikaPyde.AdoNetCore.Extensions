@@ -62,7 +62,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             if (DbConnectionCreatingAsync is null)
             {
                 if (DbConnectionCreating is not null)
-                    return await Task.Run(builder.CreateDbConnection, cancellationToken);
+                    return await Task.FromResult(builder.CreateDbConnection());
                 throw new NullReferenceException(nameof(DbConnectionCreatingAsync));
             }
             var asyncArgs = new DbConnectionCreatingAsyncEventArgs

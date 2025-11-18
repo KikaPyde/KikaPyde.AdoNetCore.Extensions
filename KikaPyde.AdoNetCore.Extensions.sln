@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36310.24
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KikaPyde.AdoNetCore.Extensions", "KikaPyde.AdoNetCore.Extensions\KikaPyde.AdoNetCore.Extensions.csproj", "{E1BA9CEB-B062-4A6C-866B-84BB945F0CB1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KikaPyde.AdoNetCore.Extensions.Examples", "KikaPyde.AdoNetCore.Extensions.Examples\KikaPyde.AdoNetCore.Extensions.Examples.csproj", "{D425DF9C-6BA4-488A-AB32-EE3EF524D647}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KikaPyde.AdoNetCore.Extensions.Tests", "KikaPyde.AdoNetCore.Extensions.Tests\KikaPyde.AdoNetCore.Extensions.Tests.csproj", "{051A7C01-75CF-403F-A004-678BA34CBE14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{D425DF9C-6BA4-488A-AB32-EE3EF524D647}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D425DF9C-6BA4-488A-AB32-EE3EF524D647}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D425DF9C-6BA4-488A-AB32-EE3EF524D647}.Release|Any CPU.Build.0 = Release|Any CPU
+		{051A7C01-75CF-403F-A004-678BA34CBE14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{051A7C01-75CF-403F-A004-678BA34CBE14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{051A7C01-75CF-403F-A004-678BA34CBE14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{051A7C01-75CF-403F-A004-678BA34CBE14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

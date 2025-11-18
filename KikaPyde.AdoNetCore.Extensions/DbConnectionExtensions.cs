@@ -78,7 +78,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 }
 #if NET6_0_OR_GREATER
                 if (allowDbCommand && allowDbBatch)
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Cannot create a DbCommand and a DbBatch at the same time");
                 else if (allowDbCommand)
                 {
                     dbCommand = dbConnection.CreateCommand();
@@ -162,9 +162,11 @@ namespace KikaPyde.AdoNetCore.Extensions
             {
                 try
                 {
+                    if (dbTransaction is not null && usingOptions.AllowTransactionRollbackOnFailTryFunc)
+                        dbTransaction.Rollback();
                     if (catchFunc is null)
                     {
-                        if (dbTransaction is not null && usingOptions.AllowTransactionRollbackOnFailTryFunc)
+                        if (dbTransaction is not null && !usingOptions.AllowTransactionRollbackOnFailTryFunc && usingOptions.AllowTransactionRollbackOnFailTryFuncAndCatchFuncIsNull)
                             dbTransaction.Rollback();
                     }
                     else
@@ -484,7 +486,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                 }
 #if NET6_0_OR_GREATER
                 if (allowDbCommand && allowDbBatch)
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Cannot create a DbCommand and a DbBatch at the same time");
                 else if (allowDbCommand)
                 {
                     dbCommand = dbConnection.CreateCommand();
@@ -568,9 +570,11 @@ namespace KikaPyde.AdoNetCore.Extensions
             {
                 try
                 {
+                    if (dbTransaction is not null && usingOptions.AllowTransactionRollbackOnFailTryFunc)
+                        await dbTransaction.RollbackAsync(CancellationToken.None);
                     if (catchFunc is null)
                     {
-                        if (dbTransaction is not null && usingOptions.AllowTransactionRollbackOnFailTryFunc)
+                        if (dbTransaction is not null && !usingOptions.AllowTransactionRollbackOnFailTryFunc && usingOptions.AllowTransactionRollbackOnFailTryFuncAndCatchFuncIsNull)
                             await dbTransaction.RollbackAsync(CancellationToken.None);
                     }
                     else

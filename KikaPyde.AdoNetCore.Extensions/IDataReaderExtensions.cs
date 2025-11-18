@@ -10,6 +10,10 @@ namespace KikaPyde.AdoNetCore.Extensions
             this IDataReader dataReader,
             int i)
             => (T)dataReader.GetValue(i);
+        private static bool CheckIfDbNullOrOutOfRange(
+            this IDataReader dataReader,
+            int fieldIndex)
+            => fieldIndex >= dataReader.FieldCount || dataReader.IsDBNull(fieldIndex);
         #region TakeOrSkip
         /// <summary>
         /// It is used by default in the "Get[CollectionTypeName]" methods
@@ -27,7 +31,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int resultIndex = default,
             int globalIndex = default,
             int index = default)
-            => dataReader.FieldCount <= fieldIndex && dataReader.IsDBNull(fieldIndex) ? ValueTuple.Create(false, default(T)!) : ValueTuple.Create(true, func(dataReader, fieldIndex));
+            => dataReader.CheckIfDbNullOrOutOfRange(fieldIndex) ? ValueTuple.Create(false, default(T)!) : ValueTuple.Create(true, func(dataReader, fieldIndex));
         public static ValueTuple<bool, T> TakeFieldValueOrSkipIfDbNullOrOutOfRange<T>(
             this IDataReader dataReader,
             int fieldIndex,
@@ -91,7 +95,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int resultIndex = default,
             int globalIndex = default,
             int index = default)
-            => dataReader.FieldCount <= fieldIndex && dataReader.IsDBNull(fieldIndex) ? ValueTuple.Create(true, default(T)) : ValueTuple.Create<bool, T?>(true, func(dataReader, fieldIndex));
+            => dataReader.CheckIfDbNullOrOutOfRange(fieldIndex) ? ValueTuple.Create(true, default(T)) : ValueTuple.Create(true, func(dataReader, fieldIndex));
         public static ValueTuple<bool, T?> TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T>(
             this IDataReader dataReader,
             int fieldIndex,
@@ -155,7 +159,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int resultIndex = default,
             int globalIndex = default,
             int index = default)
-            => dataReader.FieldCount <= fieldIndex && dataReader.IsDBNull(fieldIndex) ? throw new DataException() : ValueTuple.Create(true, func(dataReader, fieldIndex));
+            => ValueTuple.Create(true, func(dataReader, fieldIndex));
         public static ValueTuple<bool, T> TakeFieldValueOrThrowIfDbNullOrOutOfRange<T>(
             this IDataReader dataReader,
             int fieldIndex,

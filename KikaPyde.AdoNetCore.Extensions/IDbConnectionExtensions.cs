@@ -73,9 +73,11 @@ namespace KikaPyde.AdoNetCore.Extensions
             {
                 try
                 {
+                    if (dbTransaction is not null && usingOptions.AllowTransactionRollbackOnFailTryFunc)
+                        dbTransaction.Rollback();
                     if (catchFunc is null)
                     {
-                        if (dbTransaction is not null && usingOptions.AllowTransactionRollbackOnFailTryFunc)
+                        if (dbTransaction is not null && !usingOptions.AllowTransactionRollbackOnFailTryFunc && usingOptions.AllowTransactionRollbackOnFailTryFuncAndCatchFuncIsNull)
                             dbTransaction.Rollback();
                     }
                     else

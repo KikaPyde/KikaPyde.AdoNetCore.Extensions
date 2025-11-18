@@ -80,9 +80,9 @@ namespace KikaPyde.AdoNetCore.Extensions
                 tryFunc: (dbBatch, dbDataReader) =>
                 {
                     var result = constructor is null
-                        ? dbDataReader.Read() && !dbDataReader.IsDBNull(0)
-                            ? (T)dbDataReader.GetValue(0)
-                            : throw new InvalidOperationException()
+                        ? dbDataReader.Read()
+                            ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
+                            : throw new DataException("No data")
                         : constructor.Invoke(dbDataReader);
                     return result;
                 },
@@ -144,14 +144,16 @@ namespace KikaPyde.AdoNetCore.Extensions
             => await dbBatch.UsingAsync(
                 tryFunc: async (dbBatch, dbDataReader, cancellationToken) =>
                 {
-                    var result = constructor is null
-                        ? await dbDataReader.ReadAsync(cancellationToken) && !await dbDataReader.IsDBNullAsync(0, cancellationToken)
-                            ? (T)dbDataReader.GetValue(0)
-                            : throw (cancellationToken.IsCancellationRequested
-                                ? new OperationCanceledException()
-                                : new InvalidOperationException())
-                        : await constructor.Invoke(dbDataReader, cancellationToken);
-                    return result;
+                    if (await dbDataReader.ReadAsync(cancellationToken))
+                    {
+                        var result = await dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRangeAsync<T>(cancellationToken);
+                        return result.Item2;
+                    }
+                    else
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        throw new DataException("No data");
+                    }
                 },
                 commandBehavior: commandBehavior,
                 cancellationToken: cancellationToken);

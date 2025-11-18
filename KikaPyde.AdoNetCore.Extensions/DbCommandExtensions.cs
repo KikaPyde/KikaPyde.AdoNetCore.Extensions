@@ -81,7 +81,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                     var result = constructor is null
                         ? dbDataReader.Read()
                             ? dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
-                            : throw new DataException()
+                            : throw new DataException("No data")
                         : constructor.Invoke(dbDataReader);
                     return result;
                 },
@@ -143,12 +143,16 @@ namespace KikaPyde.AdoNetCore.Extensions
             => await dbCommand.UsingAsync(
                 tryFunc: async (dbCommand, dbDataReader, cancellationToken) =>
                 {
-                    var result = constructor is null
-                        ? await dbDataReader.ReadAsync(cancellationToken)
-                            ? (await dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRangeAsync<T>(cancellationToken)).Item2
-                            : throw new DataException()
-                        : await constructor.Invoke(dbDataReader, cancellationToken);
-                    return result;
+                    if (await dbDataReader.ReadAsync(cancellationToken))
+                    {
+                        var result = await dbDataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRangeAsync<T>(cancellationToken);
+                        return result.Item2;
+                    }
+                    else
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        throw new DataException("No data");
+                    }
                 },
                 commandBehavior: commandBehavior,
                 cancellationToken: cancellationToken);

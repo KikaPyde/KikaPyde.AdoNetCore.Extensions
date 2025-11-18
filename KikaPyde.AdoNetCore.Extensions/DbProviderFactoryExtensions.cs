@@ -16,7 +16,7 @@ namespace KikaPyde.AdoNetCore.Extensions
         private static async Task<DbConnection> InternalCreateDbConnectionAsync(
             this DbProviderFactory factory,
             CancellationToken cancellationToken)
-            => await Task.Run(factory.CreateConnection, cancellationToken) ?? throw new NullReferenceException();
+            => await Task.FromResult(factory.CreateConnection()) ?? throw new NullReferenceException();
         #endregion
         #region Using
         private static T InternalUsing<T>(

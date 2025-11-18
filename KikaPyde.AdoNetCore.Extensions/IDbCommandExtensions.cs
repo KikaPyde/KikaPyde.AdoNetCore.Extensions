@@ -50,7 +50,7 @@ namespace KikaPyde.AdoNetCore.Extensions
                     var result = constructor is null
                         ? dataReader.Read()
                             ? dataReader.TakeFirstFieldValueOrThrowIfDbNullOrOutOfRange<T>().Item2
-                            : throw new DataException()
+                            : throw new DataException("No data")
                         : constructor.Invoke(dataReader);
                     return result;
                 },

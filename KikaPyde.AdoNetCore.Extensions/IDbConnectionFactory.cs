@@ -8,6 +8,6 @@ namespace KikaPyde.AdoNetCore.Extensions
     {
         DbConnection CreateDbConnection();
         Task<DbConnection> CreateDbConnectionAsync(CancellationToken cancellationToken = default)
-            => Task.Run(CreateDbConnection, cancellationToken);
+            => Task.FromResult(CreateDbConnection());
     }
 }

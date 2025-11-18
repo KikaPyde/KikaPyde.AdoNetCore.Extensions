@@ -10,6 +10,10 @@ namespace KikaPyde.AdoNetCore.Extensions
     public static partial class AdoNetCoreHelper
     {
         #region Sync
+        private static bool CheckIfDbNullOrOutOfRange(
+            this DbDataReader dbDataReader,
+            int fieldIndex)
+            => fieldIndex >= dbDataReader.FieldCount || dbDataReader.IsDBNull(fieldIndex);
         #region TakeOrSkip
         /// <summary>
         /// It is used by default in the "Get[CollectionTypeName]" methods
@@ -27,7 +31,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int resultIndex = default,
             int globalIndex = default,
             int index = default)
-            => dbDataReader.FieldCount <= fieldIndex && dbDataReader.IsDBNull(fieldIndex) ? ValueTuple.Create(false, default(T)!) : ValueTuple.Create(true, func(dbDataReader, fieldIndex));
+            => dbDataReader.CheckIfDbNullOrOutOfRange(fieldIndex) ? ValueTuple.Create(false, default(T)!) : ValueTuple.Create(true, func(dbDataReader, fieldIndex));
         public static ValueTuple<bool, T> TakeFieldValueOrSkipIfDbNullOrOutOfRange<T>(
             this DbDataReader dbDataReader,
             int fieldIndex,
@@ -91,7 +95,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int resultIndex = default,
             int globalIndex = default,
             int index = default)
-            => dbDataReader.FieldCount <= fieldIndex && dbDataReader.IsDBNull(fieldIndex) ? ValueTuple.Create(true, default(T)) : ValueTuple.Create<bool, T?>(true, func(dbDataReader, fieldIndex));
+            => dbDataReader.CheckIfDbNullOrOutOfRange(fieldIndex) ? ValueTuple.Create(true, default(T)) : ValueTuple.Create(true, func(dbDataReader, fieldIndex));
         public static ValueTuple<bool, T?> TakeFieldValueOrDefaultIfDbNullOrOutOfRange<T>(
             this DbDataReader dbDataReader,
             int fieldIndex,
@@ -155,7 +159,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int resultIndex = default,
             int globalIndex = default,
             int index = default)
-            => dbDataReader.FieldCount <= fieldIndex && dbDataReader.IsDBNull(fieldIndex) ? throw new DataException() : ValueTuple.Create(true, func(dbDataReader, fieldIndex));
+            => ValueTuple.Create(true, func(dbDataReader, fieldIndex));
         public static ValueTuple<bool, T> TakeFieldValueOrThrowIfDbNullOrOutOfRange<T>(
             this DbDataReader dbDataReader,
             int fieldIndex,
@@ -738,6 +742,11 @@ namespace KikaPyde.AdoNetCore.Extensions
         #endregion
         #endregion
         #region Async
+        private static async ValueTask<bool> CheckIfDbNullOrOutOfRangeAsync(
+            this DbDataReader dbDataReader,
+            int fieldIndex,
+            CancellationToken cancellationToken)
+            => fieldIndex >= dbDataReader.FieldCount || await dbDataReader.IsDBNullAsync(fieldIndex, cancellationToken);
         #region TakeOrSkipAsync
         /// <summary>
         /// It is used by default in the "Get[CollectionTypeName]Async" methods
@@ -757,7 +766,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int globalIndex = default,
             int index = default,
             CancellationToken cancellationToken = default)
-            => dbDataReader.FieldCount <= fieldIndex && await dbDataReader.IsDBNullAsync(fieldIndex, cancellationToken) ? ValueTuple.Create(false, default(T)!) : ValueTuple.Create(true, await func(dbDataReader, fieldIndex, cancellationToken));
+            => await dbDataReader.CheckIfDbNullOrOutOfRangeAsync(fieldIndex, cancellationToken) ? ValueTuple.Create(false, default(T)!) : ValueTuple.Create(true, await func(dbDataReader, fieldIndex, cancellationToken));
         public static async Task<ValueTuple<bool, T>> TakeFieldValueOrSkipIfDbNullOrOutOfRangeAsync<T>(
             this DbDataReader dbDataReader,
             int fieldIndex,
@@ -834,7 +843,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int globalIndex = default,
             int index = default,
             CancellationToken cancellationToken = default)
-            => dbDataReader.FieldCount <= fieldIndex && await dbDataReader.IsDBNullAsync(fieldIndex, cancellationToken) ? ValueTuple.Create(true, default(T)) : ValueTuple.Create<bool, T?>(true, await func(dbDataReader, fieldIndex, cancellationToken));
+            => await dbDataReader.CheckIfDbNullOrOutOfRangeAsync(fieldIndex, cancellationToken) ? ValueTuple.Create(true, default(T)) : ValueTuple.Create(true, await func(dbDataReader, fieldIndex, cancellationToken));
         public static async Task<ValueTuple<bool, T?>> TakeFieldValueOrDefaultIfDbNullOrOutOfRangeAsync<T>(
             this DbDataReader dbDataReader,
             int fieldIndex,
@@ -911,7 +920,7 @@ namespace KikaPyde.AdoNetCore.Extensions
             int globalIndex = default,
             int index = default,
             CancellationToken cancellationToken = default)
-            => dbDataReader.FieldCount <= fieldIndex && await dbDataReader.IsDBNullAsync(fieldIndex, cancellationToken) ? throw new DataException() : ValueTuple.Create(true, await func(dbDataReader, fieldIndex, cancellationToken));
+            => ValueTuple.Create(true, await func(dbDataReader, fieldIndex, cancellationToken));
         public static async Task<ValueTuple<bool, T>> TakeFieldValueOrThrowIfDbNullOrOutOfRangeAsync<T>(
             this DbDataReader dbDataReader,
             int fieldIndex,
